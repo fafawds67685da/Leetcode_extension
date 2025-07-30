@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 400px;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 300;
+        }
+        
+        .header p {
+            margin: 5px 0 0 0;
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            height: 120px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            background: #f8f9fa;
+        }
+        
+        select {
+            background: white;
+            cursor: pointer;
+        }
+        
+        .analyze-btn {
+            width: 100%;
+            padding: 12px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .analyze-btn:hover {
+            background: #218838;
+        }
+        
+        .analyze-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .complexity {
+            font-size: 32px;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .explanation {
+            text-align: center;
+            font-size: 14px;
+            opacity: 0.9;
+            line-height: 1.4;
+        }
+        
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.1);
+        }
+        
+        .sample-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            float: right;
+            margin-top: -5px;
+        }
+        
+        .sample-btn:hover {
+            background: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⚡ Complexity Analyzer</h1>
+        <p>Instant Big O analysis</p>
+    </div>
+
+    <div class="input-group">
+        <label for="language">Language</label>
+        <select id="language">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="code">
+            Code
+            <button class="sample-btn" id="sampleBtn">Sample</button>
+        </label>
+        <textarea id="code" placeholder="Paste your code here..."></textarea>
+    </div>
+
+    <button class="analyze-btn" id="analyzeBtn">Analyze Complexity</button>
+
+    <div id="result" style="display: none;"></div>
+
+    <script>
+        const languagePatterns = {
+            python: {
+                functionDef: /^def\s+(\w+)\s*\(/,
+                forLoop: /^for\s+\w+\s+in\s+(range\(|.*:)/,
+                whileLoop: /^while\s+.+:/,
+                indentBased: true
+            },
+            javascript: {
+                functionDef: /^(function\s+(\w+)|const\s+(\w+)\s*=|(\w+)\s*=\s*function)/,
+                forLoop: /^for\s*\(/,
+                whileLoop: /^while\s*\(/,
+                indentBased: false,
+                blockStart: '{',
+                blockEnd: '}'
+            },
+            java: {
+                functionDef: /^(public|private|protected)?\s*(static)?\s*\w+\s+(\w+)\s*\(/,
+                forLoop: /^for\s*\(/,
+                whileLoop: /^while\s*\(/,
+                indentBased: false,
+                blockStart: '{',
+                blockEnd: '}'
+            },
+            cpp: {
+                functionDef: /^(\w+\s+)*(\w+)\s*\(/,
+                forLoop: /^for\s*\(/,
+                whileLoop: /^while\s*\(/,
+                indentBased: false,
+                blockStart: '{',
+                blockEnd: '}'
+            }
+        };
+
+        const sampleCodes = {
+            python: `def bubble_sort(arr):
+    for i in range(len(arr)):
+        for j in range(len(arr)-1):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]`,
+            javascript: `function binarySearch(arr, target) {
+    let left = 0, right = arr.length - 1;
+    while (left <= right) {
+        let mid = Math.floor((left + right) / 2);
+        if (arr[mid] === target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+}`,
+            java: `public int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}`,
+            cpp: `void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+        mergeSort(arr, l, m);
+        mergeSort(arr, m + 1, r);
+    }
+}`
+        };
+
+        function analyzeComplexity(code, lang) {
+            const lines = code.split('\n');
+            const patterns = languagePatterns[lang];
+            
+            let maxLoopDepth = 0;
+            let currentDepth = 0;
+            const recursionFuncs = new Set();
+            let currentFunc = null;
+            
+            // Pattern detection flags
+            let hasDirectAccess = false;
+            let hasBinarySearch = false;
+            let hasDivideConquer = false;
+            let hasFullRecursion = false;
+            let hasBacktracking = false;
+            let hasPermutations = false;
+            let hasMemoization = false;
+            let hasDifferentSizeLoops = false;
+            let hasRecursionInLoop = false;
+            let hasEarlyBreak = false;
+            let hasSameParamRecursion = false;
+            let hasLogarithmicLoop = false;
+            let hasTriangularLoop = false;
+            let hasRecursiveLinearWork = false;
+            let hasTreeTraversal = false;
+            let hasGraphTraversal = false;
+            let hasMixedInputs = false;
+            let hasConstantInnerLoop = false;
+            let hasDpTable = false;
+            let hasMatrixTraversal = false;
+            let hasGeometricShrinking = false;
+
+            for (let i = 0; i < lines.length; i++) {
+                const rawLine = lines[i];
+                const line = rawLine.trim();
+                
+                if (!line || line.startsWith('//') || line.startsWith('#')) continue;
+
+                // Detect function definition
+                const funcMatch = line.match(patterns.functionDef);
+                if (funcMatch) {
+                    currentFunc = funcMatch[2] || funcMatch[3] || funcMatch[4] || funcMatch[1];
+                }
+
+                // Pattern Detection
+                
+                // 1. Direct access O(1)
+                if (line.includes('return') && !line.includes('(') && !line.includes('for') && !line.includes('while')) {
+                    hasDirectAccess = true;
+                }
+
+                // 2. Binary search O(log n)
+                if ((line.includes('mid') && line.includes('(low + high)')) || 
+                    (line.includes('mid') && line.includes('(left + right)')) ||
+                    (patterns.whileLoop.test(line) && code.includes('mid') && 
+                     (code.includes('left = mid') || code.includes('right = mid')))) {
+                    hasBinarySearch = true;
+                }
+
+                // 2b. Logarithmic while loop O(log n) - i *= 2, i /= 2, etc.
+                if (patterns.whileLoop.test(line) && 
+                    (code.includes('*= 2') || code.includes('/= 2') || 
+                     code.includes('i *= 2') || code.includes('i /= 2') ||
+                     code.includes('i = i * 2') || code.includes('i = i / 2'))) {
+                    hasLogarithmicLoop = true;
+                }
+
+                // 2c. Triangular loop O(n²) - for j in range(i)
+                if (patterns.forLoop.test(line) && line.includes('range(i)') && currentDepth >= 2) {
+                    hasTriangularLoop = true;
+                }
+
+                // 2d. Recursive + linear work O(n²) - recursion with loop inside  
+                if (currentFunc && line.includes(currentFunc + '(') && 
+                    !line.startsWith('def') && maxLoopDepth >= 1 && 
+                    !hasTreeTraversal && !hasGraphTraversal) {
+                    hasRecursiveLinearWork = true;
+                }
+
+                // 2e. Tree traversal O(n) - node.left, node.right
+                if (currentFunc && line.includes(currentFunc + '(') && 
+                    (line.includes('node.left') || line.includes('node.right') || 
+                     line.includes('.left') || line.includes('.right'))) {
+                    hasTreeTraversal = true;
+                }
+
+                // 2f. Graph traversal O(V+E) - for neighbor in graph[node]
+                if (line.includes('for') && line.includes('neighbor') && 
+                    (line.includes('graph[') || line.includes('adj['))) {
+                    hasGraphTraversal = true;
+                }
+
+                // 2g. Mixed inputs O(a×b) - range(a) and range(b)
+                if (line.includes('range(a)') || line.includes('range(b)') || 
+                    (line.includes('range(') && !line.includes('range(n)') && !line.includes('range(i)'))) {
+                    hasMixedInputs = true;
+                }
+
+                // 2h. Constant inner loop O(n) - range(1000), range(100), etc.
+                if (line.includes('range(') && /range\(\d+\)/.test(line) && currentDepth >= 2) {
+                    hasConstantInnerLoop = true;
+                }
+
+                // 2i. DP table O(n×m) - dp[i][j] = ...
+                if ((line.includes('dp[i][j]') || line.includes('table[i][j]')) && 
+                    maxLoopDepth >= 2) {
+                    hasDpTable = true;
+                }
+
+                // 2j. Matrix traversal O(n²) - matrix[i][j]
+                if (line.includes('matrix[i][j]') && maxLoopDepth >= 2) {
+                    hasMatrixTraversal = true;
+                }
+
+                // 2k. Geometric shrinking O(log n) - n // 3, n // 5, etc.
+                if (patterns.whileLoop.test(line) && 
+                    (code.includes('//= 3') || code.includes('//= 5') || 
+                     code.includes('n // 3') || code.includes('n // 5') ||
+                     code.includes('/= 3') || code.includes('/= 5'))) {
+                    hasGeometricShrinking = true;
+                }
+                if ((line.includes('mid') && line.includes('(low + high)')) || 
+                    (line.includes('mid') && line.includes('(left + right)')) ||
+                    (patterns.whileLoop.test(line) && code.includes('mid') && 
+                     (code.includes('left = mid') || code.includes('right = mid')))) {
+                    hasBinarySearch = true;
+                }
+
+                // 3. Divide & Conquer O(n log n)
+                if (line.includes('merge_sort') || line.includes('quick_sort') || 
+                    (currentFunc && line.includes(currentFunc + '(') && 
+                     (line.includes('[:mid]') || line.includes('[mid:]') || 
+                      line.includes('arr[:') || line.includes('arr[mid')))) {
+                    hasDivideConquer = true;
+                }
+
+                // 3b. Same parameter recursion O(n) - like binary_split(n//2) + binary_split(n//2)
+                if (currentFunc && line.includes(currentFunc + '(')) {
+                    const recursiveCalls = line.match(new RegExp(currentFunc + '\\([^)]+\\)', 'g'));
+                    if (recursiveCalls && recursiveCalls.length >= 2) {
+                        // Check if all calls have the same parameter
+                        const firstParam = recursiveCalls[0];
+                        if (recursiveCalls.every(call => call === firstParam)) {
+                            hasSameParamRecursion = true;
+                        }
+                    }
+                }
+
+                // 4. Full recursion O(2^n) - Fibonacci pattern
+                if ((line.includes('fib(n-1)') && line.includes('fib(n-2)')) ||
+                    (currentFunc && line.includes(currentFunc + '(n-1)') && line.includes(currentFunc + '(n-2)'))) {
+                    hasFullRecursion = true;
+                }
+
+                // 5. Permutations O(n!)
+                if (line.includes('permut') || line.includes('factorial') ||
+                    (line.includes('path + [') && code.includes('backtrack'))) {
+                    hasPermutations = true;
+                }
+
+                // 6. Backtracking O(n × 2^n)
+                if (line.includes('backtrack') && (line.includes('i+1') || line.includes('+ 1'))) {
+                    hasBacktracking = true;
+                }
+
+                // 7. Memoization O(n)
+                if (line.includes('cache[') || line.includes('memo[') || line.includes('@lru_cache')) {
+                    hasMemoization = true;
+                }
+
+                // 8. Early break pattern O(n) - nested loops with immediate break
+                if (line.includes('break') && currentDepth >= 2) {
+                    // Check if break happens early (like j == 1, j == 0, etc.)
+                    const prevLines = lines.slice(Math.max(0, i-3), i);
+                    if (prevLines.some(prevLine => 
+                        prevLine.includes('if') && 
+                        (prevLine.includes('== 0') || prevLine.includes('== 1') || 
+                         prevLine.includes('< 2') || prevLine.includes('<= 1')))) {
+                        hasEarlyBreak = true;
+                    }
+                }
+
+                // 9. Different size loops O(n × m)
+                const forMatches = line.match(/for\s+\w+\s+in\s+(\w+)/g);
+                if (forMatches && forMatches.length >= 1) {
+                    const variables = forMatches.map(match => match.match(/in\s+(\w+)/)[1]);
+                    if (variables.length >= 2 || (i > 0 && lines.slice(0, i).some(prevLine => 
+                        prevLine.includes('for') && !variables.some(v => prevLine.includes('in ' + v))))) {
+                        hasDifferentSizeLoops = true;
+                    }
+                }
+
+                // Detect recursion (actual function calls)
+                if (currentFunc && line.includes(currentFunc + '(') && 
+                    !line.startsWith('def') && !line.startsWith('#') && !line.startsWith('//')) {
+                    recursionFuncs.add(currentFunc);
+                    
+                    // Check if recursion is inside a loop (exponential pattern)
+                    if (currentDepth > 0) {
+                        hasRecursionInLoop = true;
+                    }
+                }
+
+                // Count loop depth - only actual loops, not conditions
+                if (patterns.forLoop.test(line) || patterns.whileLoop.test(line)) {
+                    currentDepth += 1;
+                    maxLoopDepth = Math.max(maxLoopDepth, currentDepth);
+                }
+
+                // Handle Python indentation - reset depth when exiting loop blocks
+                if (patterns.indentBased && i > 0) {
+                    const currentIndent = rawLine.match(/^ */)?.[0]?.length || 0;
+                    const prevIndent = lines[i-1].match(/^ */)?.[0]?.length || 0;
+                    
+                    // If current line has less indentation than previous, we're exiting blocks
+                    if (currentIndent < prevIndent) {
+                        // Count how many indentation levels we dropped
+                        const indentDrop = Math.floor((prevIndent - currentIndent) / 4); // Assuming 4-space indents
+                        currentDepth = Math.max(0, currentDepth - indentDrop);
+                    }
+                }
+            }
+
+            // Priority-based complexity determination
+            if (hasPermutations) {
+                return { complexity: 'O(n!)', explanation: 'Permutations/factorial algorithm detected' };
+            } else if (hasSameParamRecursion) {
+                return { complexity: 'O(n)', explanation: 'Multiple calls with same parameter - linear complexity' };
+            } else if (hasTreeTraversal) {
+                return { complexity: 'O(n)', explanation: 'Tree traversal - visits each node once' };
+            } else if (hasGraphTraversal) {
+                return { complexity: 'O(V + E)', explanation: 'Graph traversal - visits vertices and edges' };
+            } else if (hasRecursiveLinearWork && !hasMemoization) {
+                return { complexity: 'O(n²)', explanation: 'Recursion with linear work per call' };
+            } else if (hasRecursionInLoop && !hasMemoization) {
+                return { complexity: 'O(2ⁿ)', explanation: 'Recursion inside loop - exponential complexity' };
+            } else if (hasFullRecursion) {
+                return { complexity: 'O(2ⁿ)', explanation: 'Full recursion pattern (e.g., Fibonacci)' };
+            } else if (hasBacktracking) {
+                return { complexity: 'O(n × 2ⁿ)', explanation: 'Backtracking algorithm detected' };
+            } else if (hasMixedInputs || hasDpTable) {
+                return { complexity: 'O(n × m)', explanation: 'Two different input sizes or DP table' };
+            } else if (hasDifferentSizeLoops) {
+                return { complexity: 'O(n × m)', explanation: 'Different size loops detected' };
+            } else if (hasDivideConquer && maxLoopDepth === 1) {
+                return { complexity: 'O(k × n log n)', explanation: 'Loop with divide-and-conquer' };
+            } else if (hasDivideConquer) {
+                return { complexity: 'O(n log n)', explanation: 'Divide-and-conquer algorithm' };
+            } else if (hasGeometricShrinking) {
+                return { complexity: 'O(log n)', explanation: 'Geometric shrinking - dividing by constant' };
+            } else if (hasLogarithmicLoop) {
+                return { complexity: 'O(log n)', explanation: 'Logarithmic loop - doubling/halving pattern' };
+            } else if (hasBinarySearch) {
+                return { complexity: 'O(log n)', explanation: 'Binary search/halving pattern' };
+            } else if (hasMatrixTraversal) {
+                return { complexity: 'O(n²)', explanation: 'Matrix traversal - accessing each element' };
+            } else if (hasTriangularLoop) {
+                return { complexity: 'O(n²)', explanation: 'Triangular loop pattern - range(i) inside range(n)' };
+            } else if (hasConstantInnerLoop) {
+                return { complexity: 'O(n)', explanation: 'Nested loops with constant inner bound' };
+            } else if (hasEarlyBreak) {
+                return { complexity: 'O(n)', explanation: 'Nested loops with early break - linear complexity' };
+            } else if (hasMemoization && recursionFuncs.size > 0) {
+                return { complexity: 'O(n)', explanation: 'Memoized recursion detected' };
+            } else if (maxLoopDepth >= 3) {
+                return { complexity: `O(n^${maxLoopDepth})`, explanation: `${maxLoopDepth} nested loops detected` };
+            } else if (maxLoopDepth === 2) {
+                return { complexity: 'O(n²)', explanation: 'Two nested loops detected' };
+            } else if (maxLoopDepth === 1) {
+                return { complexity: 'O(n)', explanation: 'Single loop - linear complexity' };
+            } else if (recursionFuncs.size > 0) {
+                return { complexity: 'O(2ⁿ)', explanation: 'Recursive algorithm detected' };
+            } else if (hasDirectAccess) {
+                return { complexity: 'O(1)', explanation: 'Direct access/assignment pattern' };
+            } else {
+                return { complexity: 'O(1)', explanation: 'Constant time complexity' };
+            }
+        }
+
+        document.getElementById('analyzeBtn').addEventListener('click', () => {
+            const code = document.getElementById('code').value.trim();
+            const language = document.getElementById('language').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!code) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <div class="complexity">⚠️</div>
+                        <div class="explanation">Please enter some code to analyze</div>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+
+            const result = analyzeComplexity(code, language);
+            
+            resultDiv.innerHTML = `
+                <div class="complexity">${result.complexity}</div>
+                <div class="explanation">${result.explanation}</div>
+            `;
+            resultDiv.style.display = 'block';
+        });
+
+        document.getElementById('sampleBtn').addEventListener('click', () => {
+            const language = document.getElementById('language').value;
+            document.getElementById('code').value = sampleCodes[language];
+        });
+
+        // Auto-update sample when language changes
+        document.getElementById('language').addEventListener('change', () => {
+            const codeArea = document.getElementById('code');
+            if (!codeArea.value.trim()) {
+                const language = document.getElementById('language').value;
+                codeArea.value = sampleCodes[language];
+            }
+        });
+
+        // Load initial sample
+        document.getElementById('code').value = sampleCodes.python;
+    </script>
+</body>
+</html>

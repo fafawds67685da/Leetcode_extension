@@ -1,41 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="utf-8">
     <title>Complexity Analyzer</title>
-    <meta name="viewport" content="width=400, initial-scale=1">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <main class="container">
-        <header class="header">
-            <h1>⚡ Complexity Analyzer</h1>
-            <p>Instant Big O analysis</p>
-        </header>
-        <form id="analyzerForm" autocomplete="off">
-            <div class="input-group">
-                <label for="language">Language</label>
-                <select id="language" name="language">
-                    <option value="python">Python</option>
-                    <option value="javascript">JavaScript</option>
-                    <option value="java">Java</option>
-                    <option value="cpp">C++</option>
-                </select>
-            </div>
-            <div class="input-group">
-                <label for="code">
-                    Code
-                    <button type="button" class="sample-btn" id="sampleBtn" aria-label="Insert sample code">Sample</button>
-                </label>
-                <textarea id="code" name="code" placeholder="Paste your code here..." spellcheck="false"></textarea>
-            </div>
-            <button type="submit" class="analyze-btn" id="analyzeBtn">
-                <span id="analyzeBtnText">Analyze Complexity</span>
-                <span id="loadingSpinner" class="spinner" style="display:none;"></span>
-            </button>
-        </form>
-        <section id="result" class="result" style="display: none;" aria-live="polite"></section>
-    </main>
+    <div class="header">
+        <h1>⚡ Complexity Analyzer</h1>
+        <p>Instant Big O analysis</p>
+    </div>
+
+    <div class="input-group">
+        <label for="language">Language</label>
+        <select id="language">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="cpp">C++</option>
+        </select>
+    </div>
+
+    <div class="input-group">
+        <label for="code">
+            Code
+            <button class="sample-btn" id="sampleBtn">Sample</button>
+        </label>
+        <textarea id="code" placeholder="Paste your code here..."></textarea>
+    </div>
+
+    <button class="analyze-btn" id="analyzeBtn">Analyze Complexity</button>
+
+    <div id="result" style="display: none;"></div>
+
     <script src="analyzer.js"></script>
 </body>
 </html>

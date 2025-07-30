@@ -1,37 +1,98 @@
-// ...existing code from <script> in HTML, but with the following improvements...
+const languagePatterns = {
+    python: {
+        functionDef: /^def\s+(\w+)\s*\(/,
+        forLoop: /^for\s+\w+\s+in\s+(range\(|.*:)/,
+        whileLoop: /^while\s+.+:/,
+        indentBased: true
+    },
+    javascript: {
+        functionDef: /^(function\s+(\w+)|const\s+(\w+)\s*=|(\w+)\s*=\s*function)/,
+        forLoop: /^for\s*\(/,
+        whileLoop: /^while\s*\(/,
+        indentBased: false,
+        blockStart: '{',
+        blockEnd: '}'
+    },
+    java: {
+        functionDef: /^(public|private|protected)?\s*(static)?\s*\w+\s+(\w+)\s*\(/,
+        forLoop: /^for\s*\(/,
+        whileLoop: /^while\s*\(/,
+        indentBased: false,
+        blockStart: '{',
+        blockEnd: '}'
+    },
+    cpp: {
+        functionDef: /^(\w+\s+)*(\w+)\s*\(/,
+        forLoop: /^for\s*\(/,
+        whileLoop: /^while\s*\(/,
+        indentBased: false,
+        blockStart: '{',
+        blockEnd: '}'
+    }
+};
+
+const sampleCodes = {
+    python: `def bubble_sort(arr):
+    for i in range(len(arr)):
+        for j in range(len(arr)-1):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]`,
+    javascript: `function binarySearch(arr, target) {
+    let left = 0, right = arr.length - 1;
+    while (left <= right) {
+        let mid = Math.floor((left + right) / 2);
+        if (arr[mid] === target) return mid;
+        if (arr[mid] < target) left = mid + 1;
+        else right = mid - 1;
+    }
+}`,
+    java: `public int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}`,
+    cpp: `void mergeSort(int arr[], int l, int r) {
+    if (l < r) {
+        int m = l + (r - l) / 2;
+        mergeSort(arr, l, m);
+        mergeSort(arr, m + 1, r);
+    }
+}`
+};
+
+function analyzeComplexity(code, lang) {
+    const patterns = languagePatterns[lang];
+    if (!patterns) return { complexity: 'N/A', explanation: 'Language not supported' };
+
+    let complexity = 'O(1)';
+    let explanation = 'The code has constant complexity';
+
+    // Check for function definitions
+    if (patterns.functionDef.test(code)) {
+        complexity = 'O(n)';
+        explanation = 'The code defines a function that operates on n elements';
+    }
+
+    // Check for loops
+    if (patterns.forLoop.test(code) || patterns.whileLoop.test(code)) {
+        complexity = 'O(n^2)';
+        explanation = 'The code contains nested loops, each iterating over n elements';
+    }
+
+    return { complexity, explanation };
+}
 
 // DOM references
-const form = document.getElementById('analyzerForm');
-const codeArea = document.getElementById('code');
-const languageSelect = document.getElementById('language');
+const language = document.getElementById('language');
+const code = document.getElementById('code');
 const resultDiv = document.getElementById('result');
 const sampleBtn = document.getElementById('sampleBtn');
 const analyzeBtn = document.getElementById('analyzeBtn');
-const analyzeBtnText = document.getElementById('analyzeBtnText');
-const loadingSpinner = document.getElementById('loadingSpinner');
 
-// ...existing languagePatterns and sampleCodes...
+analyzeBtn.addEventListener('click', () => {
+    const codeVal = code.value.trim();
+    const langVal = language.value;
 
-// ...existing analyzeComplexity function...
-
-function showLoading(show) {
-    if (show) {
-        analyzeBtn.setAttribute('disabled', 'disabled');
-        analyzeBtnText.style.display = 'none';
-        loadingSpinner.style.display = 'inline-block';
-    } else {
-        analyzeBtn.removeAttribute('disabled');
-        analyzeBtnText.style.display = '';
-        loadingSpinner.style.display = 'none';
-    }
-}
-
-form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const code = codeArea.value.trim();
-    const language = languageSelect.value;
-
-    if (!code) {
+    if (!codeVal) {
         resultDiv.innerHTML = `
             <div class="error">
                 <div class="complexity">⚠️</div>
@@ -42,32 +103,24 @@ form.addEventListener('submit', (e) => {
         return;
     }
 
-    showLoading(true);
-    setTimeout(() => {
-        const result = analyzeComplexity(code, language);
-        resultDiv.innerHTML = `
-            <div class="complexity">${result.complexity}</div>
-            <div class="explanation">${result.explanation}</div>
-        `;
-        resultDiv.style.display = 'block';
-        showLoading(false);
-    }, 350); // Simulate processing delay for UX
+    const result = analyzeComplexity(codeVal, langVal);
+
+    resultDiv.innerHTML = `
+        <div class="complexity">${result.complexity}</div>
+        <div class="explanation">${result.explanation}</div>
+    `;
+    resultDiv.style.display = 'block';
 });
 
 sampleBtn.addEventListener('click', () => {
-    codeArea.value = sampleCodes[languageSelect.value];
-    codeArea.focus();
+    code.value = sampleCodes[language.value];
 });
 
-languageSelect.addEventListener('change', () => {
-    if (!codeArea.value.trim()) {
-        codeArea.value = sampleCodes[languageSelect.value];
+language.addEventListener('change', () => {
+    if (!code.value.trim()) {
+        code.value = sampleCodes[language.value];
     }
 });
 
-window.addEventListener('DOMContentLoaded', () => {
-    codeArea.value = sampleCodes.python;
-    codeArea.setAttribute('aria-label', 'Paste your code here');
-    codeArea.setAttribute('tabindex', '0');
-    resultDiv.setAttribute('tabindex', '0');
-});
+// Load initial sample
+code.value = sampleCodes.python;
