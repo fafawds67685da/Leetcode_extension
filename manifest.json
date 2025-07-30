@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Complexity Analyzer",
+  "version": "1.0",
+  "description": "Instant Big O analysis for code snippets.",
+  "action": {
+    "default_popup": "chrome-extension-analyzer.html",
+    "default_title": "Complexity Analyzer"
+  }
+}
